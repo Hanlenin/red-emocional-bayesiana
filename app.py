@@ -1,21 +1,32 @@
-
 import streamlit as st
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+import json
 from datetime import datetime
 
-st.set_page_config(layout="wide")
-st.title("🧠 Red Emocional Bayesiana Interactiva")
+# Configuración de página
+st.set_page_config(page_title="Red Emocional Bayesiana Personal", layout="wide")
 
-nombre_usuario = st.text_input("Tu nombre", value="Hans")
+# Mensaje de bienvenida
+st.title("🧠 Red Emocional Bayesiana Personal")
+st.markdown("### Trazando el mapa de mi mundo interno, un evento a la vez.")
+st.write("---")
+
+# Input de nombre y fecha
+nombre_usuario = st.text_input("Ingresa tu nombre:", value="Hans")
 fecha_actual = datetime.today().strftime('%Y-%m-%d')
 
+# Mensaje personalizado
+st.success(f"👋 Hola {nombre_usuario}, hoy es {fecha_actual}. ¡Un buen día para conocerte mejor!")
+
+# Inicializar sesión
 if "network_data" not in st.session_state:
     st.session_state.network_data = []
 
-st.sidebar.header("Agregar evento emocional")
-evento = st.sidebar.text_input("Evento", value="Crítica")
+# Sidebar para agregar eventos
+st.sidebar.header("➕ Agregar evento emocional")
+evento = st.sidebar.text_input("Nombre del evento", value="Crítica")
 int_1 = st.sidebar.text_input("Interpretación 1", value="Me ayudan")
 int_2 = st.sidebar.text_input("Interpretación 2", value="Me humillan")
 int_3 = st.sidebar.text_input("Interpretación 3", value="Reflexiono")
@@ -46,9 +57,11 @@ if st.sidebar.button("Agregar evento"):
     }
     st.session_state.network_data.append(caso)
 
-if st.session_state.network_data:
-    st.subheader("Resumen de eventos")
+st.write("---")
+st.subheader("🧩 Mi Red Emocional del Día")
 
+if st.session_state.network_data:
+    # Mostrar resumen
     data = []
     for caso in st.session_state.network_data:
         for interp in caso["interpretaciones"]:
@@ -56,9 +69,10 @@ if st.session_state.network_data:
                 caso["fecha"], caso["nombre"], caso["evento"],
                 interp["respuesta"], f'{interp["posterior"]}%'
             ])
-    st.dataframe(pd.DataFrame(data, columns=["Fecha", "Nombre", "Evento", "Interpretación", "Posterior"]))
+    df = pd.DataFrame(data, columns=["Fecha", "Nombre", "Evento", "Interpretación", "Posterior"])
+    st.dataframe(df, use_container_width=True)
 
-    # Crear grafo
+    # Grafo emocional
     G = nx.DiGraph()
     pos = {}
     x = 0
@@ -74,5 +88,32 @@ if st.session_state.network_data:
         x += 3
 
     fig, ax = plt.subplots(figsize=(14, 6))
-    nx.draw(G, pos, with_labels=True, node_color="lightblue", node_size=3000, font_size=9, ax=ax)
+    nx.draw(
+        G, pos, with_labels=True, node_color="lightblue",
+        node_size=3000, font_size=9, font_weight="bold", edge_color="gray", ax=ax
+    )
     st.pyplot(fig)
+
+    # Descargar JSON
+    st.download_button(
+        label="📄 Descargar diario emocional (JSON)",
+        data=json.dumps(st.session_state.network_data, indent=4),
+        file_name=f"diario_emocional_{fecha_actual}.json",
+        mime="application/json"
+    )
+
+    # Descargar imagen PNG
+    fig.savefig(f"grafo_emocional_{fecha_actual}.png")
+    with open(f"grafo_emocional_{fecha_actual}.png", "rb") as file:
+        btn = st.download_button(
+            label="🖼️ Descargar red emocional (PNG)",
+            data=file,
+            file_name=f"grafo_emocional_{fecha_actual}.png",
+            mime="image/png"
+        )
+
+    st.info("✨ Reconociendo mis emociones, reescribiendo mi historia.")
+else:
+    st.warning("Aún no has registrado eventos emocionales hoy. ¡Anímate a comenzar!")
+
+
